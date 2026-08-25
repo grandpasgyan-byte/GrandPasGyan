@@ -1,1 +1,1 @@
-# Empty initialization file to treat tools as a Python package.
+# Initialization file for tools package.

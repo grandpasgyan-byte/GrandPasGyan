@@ -3,6 +3,12 @@ GrandPa's Gyan - AI Educational Platform
 Main Streamlit Application
 """
 
+import sys
+import os
+
+# Fix Streamlit Cloud Module Resolution Path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 
 st.set_page_config(

@@ -6,9 +6,9 @@ Manages API keys and environment parameters securely.
 import os
 import streamlit as st
 
-# Updated to use gemini-3.6-flash as requested by the API error message
+# Active production models (gemini-2.x endpoints removed)
 DEFAULT_MODEL = "gemini-3.6-flash"
-FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash"]
+FALLBACK_MODELS = ["gemini-3.7-flash", "gemini-3.5-flash-lite"]
 MAX_DIRECT_PDF_SIZE = 10 * 1024 * 1024  # 10 MB limit for inline parsing
 
 def get_api_key() -> str:

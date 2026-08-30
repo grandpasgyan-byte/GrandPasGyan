@@ -1,11 +1,12 @@
 """
-Structured Quiz Generator & Evaluator
+GrandPa's Gyan - Quiz Engine & JSON Parser
 """
 
 import json
 from typing import List, Dict, Any
 
 def parse_quiz_json(raw_text: str) -> List[Dict[str, Any]]:
+    """Parses JSON quiz array from generated text."""
     try:
         start_idx = raw_text.find("[")
         end_idx = raw_text.rfind("]") + 1

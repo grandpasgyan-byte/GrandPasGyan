@@ -1,1 +1,1 @@
-# Initialization file for memory package.
+# Student Memory Persistence Package

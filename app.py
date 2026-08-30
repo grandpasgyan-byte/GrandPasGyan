@@ -1,6 +1,6 @@
 """
 GrandPa's Gyan - AI Educational Platform
-Main Streamlit Application
+Main Streamlit Application with 24x7 Autopilot Sentinel
 """
 
 import sys
@@ -11,12 +11,21 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
 
+# Initialize Streamlit Page Configuration First
 st.set_page_config(
     page_title="GrandPa's Gyan",
     page_icon="🧓",
     layout="wide"
 )
 
+# Run 24x7 Autopilot Security & Maintenance Sentinel on Load
+try:
+    from tools.autopilot import run_autopilot_sentinel
+    autopilot_report = run_autopilot_sentinel()
+except Exception as e:
+    autopilot_report = {"Autopilot Engine": f"Initialization Warning: {str(e)}"}
+
+# Local Core Modules
 from config import get_api_key
 from agents_registry import AGENTS_DATABASE
 from agent_router import route_agent_automatically, get_agent_config
@@ -30,7 +39,7 @@ from tools.vision import process_image
 from tools.voice import text_to_speech
 from tools.exam import generate_exam_analysis_prompt
 
-# Initialize Database
+# Initialize SQLite Database Schema
 init_db()
 
 # API Key Validation
@@ -50,9 +59,13 @@ if "auto_route" not in st.session_state:
 
 profile = get_profile()
 
-# Sidebar Navigation
+# Sidebar Navigation & System Diagnostics Expander
 st.sidebar.title("🧓 GrandPa's Gyan")
 st.sidebar.caption(f"Student: **{profile['name']}** | {profile['grade']} ({profile['board']})")
+
+with st.sidebar.expander("🛡️ Autopilot Security & System Health"):
+    for check, status in autopilot_report.items():
+        st.caption(f"**{check.replace('_', ' ').title()}**: `{status}`")
 
 nav_page = st.sidebar.radio(
     "Navigation", 

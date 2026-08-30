@@ -15,7 +15,7 @@ def get_client() -> genai.Client:
     """Returns an authenticated Google GenAI client instance."""
     api_key = get_api_key()
     if not api_key:
-        raise ValueError("Gemini API Key is missing. Please configure secrets or check config.py.")
+        raise ValueError("Gemini API Key is missing or invalid. Please configure your key in Streamlit Secrets.")
     return genai.Client(api_key=api_key)
 
 def stream_gemini_response(
@@ -74,7 +74,7 @@ def stream_gemini_response(
                 if citations:
                     yield citations
 
-            return  # Successful generation, terminate loop
+            return  # Successful generation
 
         except APIError as e:
             err_msg = str(e)

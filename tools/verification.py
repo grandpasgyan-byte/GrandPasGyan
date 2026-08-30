@@ -1,4 +1,3 @@
-```python
 """
 GrandPa's Gyan - AI Answer Verification Engine
 Performs post-generation arithmetic checks on model output text.

@@ -1,53 +1,78 @@
 """
-Gemini Service - AI Model Integration
-Updated for Gemini 3.6 Flash
+GrandPa's Gyan - Gemini AI Service Interface
+Handles streaming responses, multimodal payloads, web grounding, and AST calculator intercepts.
 """
 
-import os
-import streamlit as st
+from typing import List, Optional, Any, Generator
 from google import genai
 from google.genai import types
+from google.genai.errors import APIError
+from config import DEFAULT_MODEL, get_api_key
+from tools.web_search import extract_citations
+from tools.calculator import evaluate_expression
 
-def get_client():
-    """Retrieves authenticated Gemini Client."""
-    api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
+def get_client() -> genai.Client:
+    """Returns an authenticated Google GenAI client instance."""
+    api_key = get_api_key()
     if not api_key:
-        return None
+        raise ValueError("Gemini API Key is missing. Please configure secrets or sidebar input.")
     return genai.Client(api_key=api_key)
 
-def stream_gemini_response(system_instruction, user_prompt, attachments=None, file_doc=None, tools_list=None):
-    """Streams responses from Google Gemini API using gemini-3.6-flash model."""
-    client = get_client()
-    if not client:
-        yield "⚠️ API key is missing. Please provide a valid Gemini API Key."
+def stream_gemini_response(
+    system_instruction: str,
+    user_prompt: str,
+    attachments: Optional[List[Any]] = None,
+    file_doc: Optional[Any] = None,
+    tools_list: Optional[List[str]] = None,
+    model_name: str = DEFAULT_MODEL
+) -> Generator[str, None, None]:
+    """Streams response content dynamically while supporting Web Search & Calculator integration."""
+    try:
+        client = get_client()
+    except Exception as e:
+        yield f"⚠️ Client Initialization Error: {str(e)}"
         return
 
-    # UPDATED TO GEMINI 3.6 FLASH
-    MODEL_NAME = "gemini-3.6-flash"
+    # Check for direct calculator shortcut starting with '='
+    if tools_list and "calculator" in tools_list and user_prompt.startswith("="):
+        calc_result = evaluate_expression(user_prompt[1:])
+        if calc_result is not None:
+            yield f"**AST Direct Calculation Result:** `{calc_result}`\n\n"
 
     contents = []
-    
     if file_doc:
         contents.append(file_doc)
-        
     if attachments:
         contents.extend(attachments)
-        
     contents.append(user_prompt)
 
     config = types.GenerateContentConfig(
         system_instruction=system_instruction,
-        temperature=0.7,
+        temperature=0.4,
     )
 
+    if tools_list and "google_search" in tools_list:
+        config.tools = [{"google_search": {}}]
+
     try:
-        response = client.models.generate_content_stream(
-            model=MODEL_NAME,
+        response_stream = client.models.generate_content_stream(
+            model=model_name,
             contents=contents,
             config=config
         )
-        for chunk in response:
+
+        last_chunk = None
+        for chunk in response_stream:
+            last_chunk = chunk
             if chunk.text:
                 yield chunk.text
+
+        if tools_list and "google_search" in tools_list and last_chunk:
+            citations = extract_citations(last_chunk)
+            if citations:
+                yield citations
+
+    except APIError as e:
+        yield f"\n\n⚠️ **API Error:** {getattr(e, 'message', str(e))}"
     except Exception as e:
-        yield f"API Error: {str(e)}"
+        yield f"\n\n⚠️ **Execution Error:** {str(e)}"

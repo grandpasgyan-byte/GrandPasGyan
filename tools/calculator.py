@@ -1,5 +1,6 @@
 """
-Safe Math Calculator
+GrandPa's Gyan - Safe AST Math Calculator
+Evaluates math expressions safely without using arbitrary eval().
 """
 
 import ast
@@ -18,6 +19,7 @@ SAFE_FUNCTIONS = {
 }
 
 def evaluate_expression(expr_str: str) -> Optional[Union[float, int]]:
+    """Safely parses mathematical AST expressions."""
     try:
         node = ast.parse(expr_str.strip(), mode="eval").body
         def _eval(n):
@@ -31,7 +33,7 @@ def evaluate_expression(expr_str: str) -> Optional[Union[float, int]]:
                 return SAFE_FUNCTIONS[n.func.id](*[_eval(a) for a in n.args])
             elif isinstance(n, ast.Name):
                 return SAFE_FUNCTIONS[n.id]
-            raise TypeError("Invalid Node")
+            raise TypeError("Invalid Node Structure")
         return _eval(node)
     except Exception:
         return None

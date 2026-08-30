@@ -74,7 +74,7 @@ def stream_gemini_response(
                 if citations:
                     yield citations
 
-            return  # Successful generation
+            return  # Exit upon success
 
         except APIError as e:
             err_msg = str(e)

@@ -15,7 +15,7 @@ def get_client() -> genai.Client:
     """Returns an authenticated Google GenAI client instance."""
     api_key = get_api_key()
     if not api_key:
-        raise ValueError("Gemini API Key is missing. Please configure secrets or sidebar input.")
+        raise ValueError("Gemini API Key is missing. Please configure your key in Streamlit Secrets.")
     return genai.Client(api_key=api_key)
 
 def stream_gemini_response(
@@ -80,9 +80,9 @@ def stream_gemini_response(
             err_msg = str(e)
             if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg or "quota" in err_msg.lower():
                 if current_model != models_to_try[-1]:
-                    yield f"*(Quota reached on model `{current_model}`. Switching to fallback...)*\n\n"
+                    yield f"*(Quota limit on `{current_model}`. Switching to fallback model...)*\n\n"
                     continue
-            yield f"\n\n⚠️ **API Error:** {getattr(e, 'message', str(e))}"
+            yield f"\n\n⚠️ **API Error:** You have exceeded your rate limits on Google AI Studio. Please create a new project API key or wait for the quota window to reset."
             return
         except Exception as e:
             yield f"\n\n⚠️ **Execution Error:** {str(e)}"

@@ -1,5 +1,6 @@
 """
 Gemini Service - AI Model Integration
+Updated for Gemini 3.6 Flash
 """
 
 import os
@@ -15,14 +16,14 @@ def get_client():
     return genai.Client(api_key=api_key)
 
 def stream_gemini_response(system_instruction, user_prompt, attachments=None, file_doc=None, tools_list=None):
-    """Streams responses from Google Gemini API using an updated model identifier."""
+    """Streams responses from Google Gemini API using gemini-3.6-flash model."""
     client = get_client()
     if not client:
         yield "⚠️ API key is missing. Please provide a valid Gemini API Key."
         return
 
-    # UPDATED MODEL STRING TO FIX THE ERROR
-    MODEL_NAME = "gemini-2.0-flash"
+    # UPDATED TO GEMINI 3.6 FLASH
+    MODEL_NAME = "gemini-3.6-flash"
 
     contents = []
     

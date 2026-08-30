@@ -1,18 +1,12 @@
 """
 PDF RAG Tool
-Extracts document text using PyPDF2 for small files or uploads to Gemini File API for large files.
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 import PyPDF2
 from config import MAX_DIRECT_PDF_SIZE
 
 def process_pdf_document(uploaded_file, client=None) -> Tuple[Optional[str], Optional[Any]]:
-    """
-    Intelligently routes PDF inputs:
-    - Text extraction for files < 10 MB
-    - Native Gemini File object for files >= 10 MB
-    """
     file_bytes = uploaded_file.getvalue()
     file_size = len(file_bytes)
     
@@ -28,7 +22,6 @@ def process_pdf_document(uploaded_file, client=None) -> Tuple[Optional[str], Opt
         except Exception:
             return None, None
     else:
-        # File API Route for Large Documents (> 10 MB)
         if client:
             try:
                 uploaded_doc = client.files.upload(

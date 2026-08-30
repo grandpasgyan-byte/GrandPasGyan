@@ -9,14 +9,18 @@ CURRICULUM_DATA: Dict[str, Any] = {
     "CBSE / NCERT": {
         "Class 10": {
             "Mathematics": {
-                "Real Numbers": ["Euclid's Division Lemma", "Fundamental Theorem of Arithmetic", "Irrationals"],
-                "Polynomials": ["Zeros of Polynomial", "Relationship between Zeros and Coefficients"],
-                "Quadratic Equations": ["Standard Form", "Solving by Factoring", "Quadratic Formula", "Discriminant"]
+                "Real Numbers": ["Euclid's Division Lemma", "Fundamental Theorem of Arithmetic", "Revisiting Irrational Numbers"],
+                "Polynomials": ["Zeros of Polynomial", "Relationship between Zeros and Coefficients", "Division Algorithm"],
+                "Quadratic Equations": ["Standard Form", "Solving by Factoring", "Quadratic Formula", "Nature of Roots"]
             },
             "Science": {
-                "Chemical Reactions and Equations": ["Chemical Equations", "Types of Chemical Reactions", "Corrosion"],
+                "Chemical Reactions and Equations": ["Chemical Equations", "Types of Chemical Reactions", "Corrosion & Rancidity"],
                 "Acids, Bases and Salts": ["Chemical Properties", "pH Scale", "Salts Spectrum"],
-                "Life Processes": ["Nutrition", "Respiration", "Transportation", "Excretion"]
+                "Life Processes": ["Nutrition", "Respiration", "Transportation", "Excretion"],
+                "Light - Reflection & Refraction": ["Spherical Mirrors", "Refraction", "Lenses & Power"]
+            },
+            "English": {
+                "Grammar & Usage": ["Idioms & Phrases", "Tenses", "Active/Passive Voice", "Direct/Indirect Speech"]
             }
         },
         "Class 12": {
@@ -33,7 +37,7 @@ CURRICULUM_DATA: Dict[str, Any] = {
     "AP / TS State Board": {
         "Class 10": {
             "Physical Science": {
-                "Heat": ["Specific Heat", "Thermal Equilibrium", "Evaporation", "Condensation"],
+                "Heat": ["Specific Heat", "Thermal Equilibrium", "Evaporation & Condensation"],
                 "Chemical Reactions": ["Chemical Changes", "Exothermic & Endothermic Reactions"]
             }
         }
@@ -43,6 +47,9 @@ CURRICULUM_DATA: Dict[str, Any] = {
             "Mathematics": {
                 "Commercial Mathematics": ["GST", "Banking - Recurring Deposit"],
                 "Algebra": ["Linear Inequations", "Matrices", "Arithmetic Progression"]
+            },
+            "Physics": {
+                "Force, Work, Power & Energy": ["Turning Effect of Force", "Work Done", "Energy Conservation"]
             }
         }
     }

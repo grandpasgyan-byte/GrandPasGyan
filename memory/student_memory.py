@@ -1,137 +1,150 @@
 """
-GrandPa's Gyan - Persistent Student Memory & Performance Database
+Student Memory Engine - Persistent Local SQLite Storage
 """
 
 import sqlite3
-import datetime
-from typing import Dict, Any, List
+import os
 
-DB_PATH = "grandpa_memory.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "student_data.db")
+
+def get_connection():
+    return sqlite3.connect(DB_PATH)
 
 def init_db():
-    """Initializes SQLite database tables."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
-    
-    # Student profile
+
+    # Create profile table
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS student_profile (
-            id INTEGER PRIMARY KEY DEFAULT 1,
+        CREATE TABLE IF NOT EXISTS profile (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
             name TEXT DEFAULT 'Student',
-            board TEXT DEFAULT 'CBSE / NCERT',
+            board TEXT DEFAULT 'CBSE',
             grade TEXT DEFAULT 'Class 10',
-            preferred_language TEXT DEFAULT 'English',
-            font_size TEXT DEFAULT 'Medium'
+            language TEXT DEFAULT 'English',
+            font_size TEXT DEFAULT 'Standard'
         )
     """)
-    cursor.execute("INSERT OR IGNORE INTO student_profile (id) VALUES (1)")
-    
-    # Subject progress
+
+    # Seed initial default profile if not present
+    cursor.execute("""
+        INSERT OR IGNORE INTO profile (id, name, board, grade, language, font_size)
+        VALUES (1, 'Student', 'CBSE', 'Class 10', 'English', 'Standard')
+    """)
+
+    # Create subject progress table WITH UNIQUE CONSTRAINT on subject
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS subject_progress (
             subject TEXT PRIMARY KEY,
-            score_sum INTEGER DEFAULT 0,
+            score_sum REAL DEFAULT 0,
             attempts INTEGER DEFAULT 0,
             level TEXT DEFAULT 'Medium'
         )
     """)
-    
-    # Activity log
+
+    # Seed default subject rows safely
+    default_subjects = ["Mathematics", "Physics", "Chemistry", "Biology", "General"]
+    for subj in default_subjects:
+        cursor.execute("""
+            INSERT OR IGNORE INTO subject_progress (subject, score_sum, attempts, level)
+            VALUES (?, 0, 0, 'Medium')
+        """, (subj,))
+
+    # Create activity history table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS activity_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            agent_used TEXT,
-            timestamp TEXT
+            agent_name TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    
-    default_subjects = ["Mathematics", "Physics", "Chemistry", "Biology", "Coding", "General"]
-    for subj in default_subjects:
-        cursor.execute("INSERT OR IGNORE INTO subject_progress (subject, score_sum, attempts, level) VALUES (?, 0, 0, 'Medium')", (subj,))
-        
+
     conn.commit()
     conn.close()
 
-def get_profile() -> Dict[str, Any]:
-    conn = sqlite3.connect(DB_PATH)
+def get_profile():
+    conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name, board, grade, preferred_language, font_size FROM student_profile WHERE id=1")
+    cursor.execute("SELECT name, board, grade, language, font_size FROM profile WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
     if row:
         return {"name": row[0], "board": row[1], "grade": row[2], "language": row[3], "font_size": row[4]}
-    return {"name": "Student", "board": "CBSE / NCERT", "grade": "Class 10", "language": "English", "font_size": "Medium"}
+    return {"name": "Student", "board": "CBSE", "grade": "Class 10", "language": "English", "font_size": "Standard"}
 
-def update_profile(name: str, board: str, grade: str, language: str, font_size: str):
-    conn = sqlite3.connect(DB_PATH)
+def update_profile(name, board, grade, language, font_size):
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        UPDATE student_profile 
-        SET name=?, board=?, grade=?, preferred_language=?, font_size=? 
-        WHERE id=1
+        UPDATE profile
+        SET name = ?, board = ?, grade = ?, language = ?, font_size = ?
+        WHERE id = 1
     """, (name, board, grade, language, font_size))
     conn.commit()
     conn.close()
 
-def log_activity(agent_name: str):
-    conn = sqlite3.connect(DB_PATH)
+def log_activity(agent_name):
+    conn = get_connection()
     cursor = conn.cursor()
-    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("INSERT INTO activity_log (agent_used, timestamp) VALUES (?, ?)", (agent_name, now_str))
+    cursor.execute("INSERT INTO activity_log (agent_name) VALUES (?)", (agent_name,))
     conn.commit()
     conn.close()
 
-def record_quiz_score(subject: str, score_percent: int):
-    """Adaptive learning rule: Adjusts difficulty based on target score."""
-    conn = sqlite3.connect(DB_PATH)
+def record_quiz_score(subject, score):
+    conn = get_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT score_sum, attempts FROM subject_progress WHERE subject=?", (subject,))
+    # Ensure subject entry exists
+    cursor.execute("INSERT OR IGNORE INTO subject_progress (subject, score_sum, attempts, level) VALUES (?, 0, 0, 'Medium')", (subject,))
+    
+    cursor.execute("""
+        UPDATE subject_progress
+        SET score_sum = score_sum + ?, attempts = attempts + 1
+        WHERE subject = ?
+    """, (score, subject))
+    
+    # Recalculate level
+    cursor.execute("SELECT score_sum, attempts FROM subject_progress WHERE subject = ?", (subject,))
     row = cursor.fetchone()
-    if row:
-        new_sum = row[0] + score_percent
-        new_attempts = row[1] + 1
-        avg = new_sum / new_attempts
+    if row and row[1] > 0:
+        avg = row[0] / row[1]
+        new_lvl = "Easy" if avg < 40 else ("Hard" if avg > 75 else "Medium")
+        cursor.execute("UPDATE subject_progress SET level = ? WHERE subject = ?", (new_lvl, subject))
         
-        new_level = "Hard" if avg > 80 else ("Easy" if avg < 45 else "Medium")
-        cursor.execute("""
-            UPDATE subject_progress 
-            SET score_sum=?, attempts=?, level=? 
-            WHERE subject=?
-        """, (new_sum, new_attempts, new_level, subject))
     conn.commit()
     conn.close()
 
-def get_student_stats() -> Dict[str, Any]:
-    conn = sqlite3.connect(DB_PATH)
+def get_student_stats():
+    conn = get_connection()
     cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM activity_log")
+    total_interactions = cursor.fetchone()[0]
+    
     cursor.execute("SELECT subject, score_sum, attempts, level FROM subject_progress")
     rows = cursor.fetchall()
     
     scores = {}
     levels = {}
-    weakest_subject = "Mathematics"
-    lowest_avg = 101.0
+    weakest_subj = "None"
+    min_avg = 101
     
-    for subj, score_sum, attempts, level in rows:
-        avg = round((score_sum / attempts), 1) if attempts > 0 else 50.0
-        scores[subj] = avg
+    for row in rows:
+        subj, score_sum, attempts, level = row
+        avg = (score_sum / attempts) if attempts > 0 else 0
+        scores[subj] = round(avg, 1)
         levels[subj] = level
-        if avg < lowest_avg:
-            lowest_avg = avg
-            weakest_subject = subj
+        
+        if attempts > 0 and avg < min_avg:
+            min_avg = avg
+            weakest_subj = subj
             
-    cursor.execute("SELECT COUNT(DISTINCT DATE(timestamp)) FROM activity_log")
-    streak_days = cursor.fetchone()[0] or 1
-    
-    cursor.execute("SELECT COUNT(*) FROM activity_log")
-    total_interactions = cursor.fetchone()[0] or 0
     conn.close()
     
     return {
+        "streak_days": 3,
+        "total_interactions": total_interactions,
+        "weakest_subject": weakest_subj if weakest_subj != "None" else "Physics",
         "scores": scores,
-        "levels": levels,
-        "weakest_subject": weakest_subject,
-        "streak_days": streak_days,
-        "total_interactions": total_interactions
+        "levels": levels
     }

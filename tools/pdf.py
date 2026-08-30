@@ -1,5 +1,6 @@
 """
-PDF RAG Tool
+GrandPa's Gyan - PDF Extraction & Large File Tool
+Parses small PDFs directly or routes large documents (>10MB) via File API.
 """
 
 from typing import Optional, Tuple, Any
@@ -7,9 +8,13 @@ import PyPDF2
 from config import MAX_DIRECT_PDF_SIZE
 
 def process_pdf_document(uploaded_file, client=None) -> Tuple[Optional[str], Optional[Any]]:
+    """Extracts text for small files or uploads large files to Gemini File API."""
+    if not uploaded_file:
+        return None, None
+
     file_bytes = uploaded_file.getvalue()
     file_size = len(file_bytes)
-    
+
     if file_size < MAX_DIRECT_PDF_SIZE:
         try:
             reader = PyPDF2.PdfReader(uploaded_file)

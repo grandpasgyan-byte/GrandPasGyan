@@ -1,1 +1,1 @@
-# Initialization file for tools package.
+# Tools package initialization

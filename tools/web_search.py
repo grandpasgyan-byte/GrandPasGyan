@@ -1,11 +1,10 @@
 """
-Web Search & Citation Formatting Tool
+Web Search & Citations Tool
 """
 
 from typing import Any, List, Dict
 
 def extract_citations(response: Any) -> str:
-    """Extracts search grounding metadata chunks from Gemini response object."""
     citations_text = ""
     try:
         candidates = getattr(response, "candidates", [])
@@ -22,7 +21,7 @@ def extract_citations(response: Any) -> str:
                     sources.append({"title": title, "url": uri})
                     
             if sources:
-                citations_text += "\n\n### 🔍 Sources Used:\n"
+                citations_text += "\n\n### 📚 Citations & Sources:\n"
                 for src in sources:
                     citations_text += f"* [{src['title']}]({src['url']})\n"
     except Exception:

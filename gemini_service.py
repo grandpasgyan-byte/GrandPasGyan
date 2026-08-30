@@ -1,13 +1,13 @@
 """
 GrandPa's Gyan - Gemini AI Service Interface
-Handles streaming responses, multimodal payloads, web grounding, and AST calculator intercepts.
+Handles streaming responses, fallback handling, multimodal payloads, web grounding, and AST calculator intercepts.
 """
 
 from typing import List, Optional, Any, Generator
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
-from config import DEFAULT_MODEL, get_api_key
+from config import DEFAULT_MODEL, FALLBACK_MODELS, get_api_key
 from tools.web_search import extract_citations
 from tools.calculator import evaluate_expression
 
@@ -15,7 +15,7 @@ def get_client() -> genai.Client:
     """Returns an authenticated Google GenAI client instance."""
     api_key = get_api_key()
     if not api_key:
-        raise ValueError("Gemini API Key is missing. Please configure secrets or sidebar input.")
+        raise ValueError("Gemini API Key is missing. Please configure secrets or check config.py.")
     return genai.Client(api_key=api_key)
 
 def stream_gemini_response(
@@ -33,7 +33,6 @@ def stream_gemini_response(
         yield f"⚠️ Client Initialization Error: {str(e)}"
         return
 
-    # Check for direct calculator shortcut starting with '='
     if tools_list and "calculator" in tools_list and user_prompt.startswith("="):
         calc_result = evaluate_expression(user_prompt[1:])
         if calc_result is not None:
@@ -54,25 +53,37 @@ def stream_gemini_response(
     if tools_list and "google_search" in tools_list:
         config.tools = [{"google_search": {}}]
 
-    try:
-        response_stream = client.models.generate_content_stream(
-            model=model_name,
-            contents=contents,
-            config=config
-        )
+    models_to_try = [model_name] + [m for m in FALLBACK_MODELS if m != model_name]
 
-        last_chunk = None
-        for chunk in response_stream:
-            last_chunk = chunk
-            if chunk.text:
-                yield chunk.text
+    for current_model in models_to_try:
+        try:
+            response_stream = client.models.generate_content_stream(
+                model=current_model,
+                contents=contents,
+                config=config
+            )
 
-        if tools_list and "google_search" in tools_list and last_chunk:
-            citations = extract_citations(last_chunk)
-            if citations:
-                yield citations
+            last_chunk = None
+            for chunk in response_stream:
+                last_chunk = chunk
+                if chunk.text:
+                    yield chunk.text
 
-    except APIError as e:
-        yield f"\n\n⚠️ **API Error:** {getattr(e, 'message', str(e))}"
-    except Exception as e:
-        yield f"\n\n⚠️ **Execution Error:** {str(e)}"
+            if tools_list and "google_search" in tools_list and last_chunk:
+                citations = extract_citations(last_chunk)
+                if citations:
+                    yield citations
+
+            return  # Successful generation, terminate loop
+
+        except APIError as e:
+            err_msg = str(e)
+            if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg or "quota" in err_msg.lower():
+                if current_model != models_to_try[-1]:
+                    yield f"*(Quota reached on model `{current_model}`. Switching to fallback model...)*\n\n"
+                    continue
+            yield f"\n\n⚠️ **API Error:** {getattr(e, 'message', str(e))}"
+            return
+        except Exception as e:
+            yield f"\n\n⚠️ **Execution Error:** {str(e)}"
+            return
